@@ -16,7 +16,7 @@ import kotlinx.coroutines.launch
  **/
 class MainActivityViewModel : ViewModel(), MviViewModel<MainActivityIntents, MainActivityResult> {
     val mviDispatcher = MviDispatcher()
-    private var viewState = MainActivityViewState.Success(MainActivityState(0))
+    private var viewState = MainActivityViewState.Success(MainActivityState(counter = 0, text = ""))
     val state = MutableStateFlow<MainActivityViewState>(viewState)
 
     override fun processIntent(intent: MainActivityIntents) {
@@ -32,26 +32,50 @@ class MainActivityViewModel : ViewModel(), MviViewModel<MainActivityIntents, Mai
                         processResult(it)
                     }
                 }
+                is MainActivityIntents.EditText -> {
+                    mviDispatcher.dispatchAction(MainActivityActions.EditText(intent.text))
+                        .collect {
+                            processResult(it)
+                        }
+                }
             }
         }
     }
 
     override fun processResult(result: MainActivityResult) {
         when (result) {
-            is MainActivityResult.Success -> {
+            is MainActivityResult.AddOrRemove.Success -> {
                 viewState = reduce(viewState, result)
                 state.value = viewState
             }
-            is MainActivityResult.Loading -> {
+            is MainActivityResult.AddOrRemove.Loading -> {
                 state.value = MainActivityViewState.Loading
+            }
+            is MainActivityResult.UpdateText.Success -> {
+                viewState = reduceEditText(viewState, result)
+                state.value = viewState
             }
         }
     }
 
     private fun reduce(
-        currentState: MainActivityViewState.Success, result: MainActivityResult.Success
+        currentState: MainActivityViewState.Success, result: MainActivityResult.AddOrRemove.Success
     ): MainActivityViewState.Success {
-        return MainActivityViewState.Success(MainActivityState(currentState.state.counter + result.value))
+        return MainActivityViewState.Success(
+            MainActivityState(
+                counter = currentState.state.counter + result.value,
+                text = currentState.state.text
+            )
+        )
     }
+
+    private fun reduceEditText(
+        currentState: MainActivityViewState.Success, result: MainActivityResult.UpdateText.Success
+    ): MainActivityViewState.Success = MainActivityViewState.Success(
+        MainActivityState(
+            counter = currentState.state.counter,
+            text = result.text.toString()
+        )
+    )
 
 }
