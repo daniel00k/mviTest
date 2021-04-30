@@ -1,2 +1,2 @@
 # mviTest
-A first approach to an implementation of a MVI pattern
+An approach to an implementation of a MVI pattern
